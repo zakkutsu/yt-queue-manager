@@ -69,8 +69,15 @@ function clearQueue() {
   render()
 }
 
+function stopQueue() {
+  if (timer) {
+    clearTimeout(timer)
+    timer = null
+  }
+}
+
 function randomDelay() {
-  return Math.floor(Math.random() * (5000 - 2000)) + 2000
+  return Math.floor(Math.random() * (6000 - 3000)) + 3000
 }
 
 init()

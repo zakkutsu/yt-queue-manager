@@ -1,11 +1,14 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron')
-const fs = require('fs')
+const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
+const fs = require('fs')
+
+let mainWindow
+let ytWindow
 
 const DATA_PATH = path.join(__dirname, 'data.json')
 
 function createWindow() {
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 700,
     webPreferences: {
@@ -13,23 +16,29 @@ function createWindow() {
     }
   })
 
-  win.loadFile('index.html')
+  mainWindow.loadFile('index.html')
 }
 
 app.whenReady().then(createWindow)
 
-// buka link di browser
+// 🔥 buka link di window sendiri (bisa dikontrol)
 ipcMain.handle('open-link', (_, url) => {
-  shell.openExternal(url)
+  if (!ytWindow) {
+    ytWindow = new BrowserWindow({
+      width: 1200,
+      height: 800
+    })
+  }
+
+  ytWindow.loadURL(url)
 })
 
-// load data
+// load & save tetap sama
 ipcMain.handle('load-data', () => {
   if (!fs.existsSync(DATA_PATH)) return []
   return JSON.parse(fs.readFileSync(DATA_PATH))
 })
 
-// simpan data
 ipcMain.handle('save-data', (_, data) => {
   fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2))
 })
