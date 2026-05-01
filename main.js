@@ -20,6 +20,7 @@ function createWindow() {
 }
 
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled')
+app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
 
 app.whenReady().then(createWindow)
 
@@ -37,6 +38,7 @@ ipcMain.handle('debug-log', (_, payload) => {
 // 🔥 Open link in separate window (can be controlled)
 ipcMain.handle('open-link', async (_, url) => {
   console.log('[main] open-link called', url)
+
   if (!ytWindow) {
     ytWindow = new BrowserWindow({
       width: 1200,
@@ -46,17 +48,21 @@ ipcMain.handle('open-link', async (_, url) => {
       }
     })
 
-    // Stealth: Remove Electron and App specific User-Agent fingerprint
-    const defaultUA = ytWindow.webContents.getUserAgent()
-    const stealthUA = defaultUA.replace(/Electron\/[0-9\.]+ /, '').replace(/yt-queue\/[0-9\.]+ /, '')
-    ytWindow.webContents.setUserAgent(stealthUA)
-
     ytWindow.webContents.on('console-message', (_, level, message, line, sourceId) => {
       console.log(`[yt console] level=${level} line=${line} source=${sourceId} message=${message}`)
     })
 
     ytWindow.on('closed', () => {
       ytWindow = null
+    })
+
+    ytWindow.on('close', async () => {
+      if (ytWindow && ytWindow.webContents) {
+        try {
+          await ytWindow.webContents.session.cookies.flushStore()
+          await ytWindow.webContents.session.flushStorageData()
+        } catch (e) {}
+      }
     })
   }
 

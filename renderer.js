@@ -149,7 +149,10 @@ function render() {
         </div>
         <p class="text-xs text-slate-500 mt-1">Item ${i + 1} of ${queue.length}</p>
       </div>
-      <span class="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ml-4 ${statusBg}">${statusText}</span>
+      <div class="flex items-center gap-3 ml-4">
+        <span class="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${statusBg}">${statusText}</span>
+        <button onclick="removeQueueItem(${i})" class="text-slate-300 hover:text-red-500 transition-colors font-bold text-lg leading-none" title="Hapus channel ini">×</button>
+      </div>
     `
     
     list.appendChild(div)
@@ -327,6 +330,17 @@ function clearQueue() {
 
   window.api.saveData(queue)
 
+  render()
+}
+
+function removeQueueItem(i) {
+  queue.splice(i, 1)
+  if (index > i) {
+    index--
+  } else if (index === i && index >= queue.length && queue.length > 0) {
+    index = queue.length - 1
+  }
+  window.api.saveData(queue)
   render()
 }
 
