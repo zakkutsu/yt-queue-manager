@@ -21,12 +21,28 @@ function createWindow() {
 
 app.whenReady().then(createWindow)
 
+ipcMain.handle('debug-log', (_, payload) => {
+  const message = payload?.message ?? 'debug'
+  const details = payload?.details
+  if (details !== undefined) {
+    console.log(`[renderer] ${message}`, details)
+  } else {
+    console.log(`[renderer] ${message}`)
+  }
+  return true
+})
+
 // 🔥 Open link in separate window (can be controlled)
 ipcMain.handle('open-link', async (_, url) => {
+  console.log('[main] open-link called', url)
   if (!ytWindow) {
     ytWindow = new BrowserWindow({
       width: 1200,
       height: 800
+    })
+
+    ytWindow.webContents.on('console-message', (_, level, message, line, sourceId) => {
+      console.log(`[yt console] level=${level} line=${line} source=${sourceId} message=${message}`)
     })
 
     ytWindow.on('closed', () => {
@@ -36,8 +52,10 @@ ipcMain.handle('open-link', async (_, url) => {
 
   try {
     await ytWindow.loadURL(url)
+    console.log('[main] open-link loaded successfully')
     return { status: 'ok', message: 'Loaded' }
   } catch (err) {
+    console.log('[main] open-link failed', err)
     return { status: 'error', message: err.message }
   }
 })
@@ -57,6 +75,7 @@ ipcMain.handle('check-subscribe', async () => {
   if (!ytWindow) return { status: 'error', message: 'YouTube window not open' }
 
   try {
+    console.log('[main] check-subscribe started')
     const result = await ytWindow.webContents.executeJavaScript(`
       (async () => {
         const getSubscribeButton = () => {
@@ -99,8 +118,10 @@ ipcMain.handle('check-subscribe', async () => {
       })()
     `)
     
+    console.log('[main] check-subscribe result', result)
     return result
   } catch (err) {
+    console.log('[main] check-subscribe failed', err)
     return { status: 'error', message: err.message }
   }
 })
@@ -110,6 +131,7 @@ ipcMain.handle('auto-subscribe', async () => {
   if (!ytWindow) return { status: 'error', message: 'YouTube window not open' }
 
   try {
+    console.log('[main] auto-subscribe started')
     const result = await ytWindow.webContents.executeJavaScript(`
       (async () => {
         const getSubscribeButton = () => {
@@ -278,8 +300,10 @@ ipcMain.handle('auto-subscribe', async () => {
       })()
     `)
 
+    console.log('[main] auto-subscribe result', result)
     return result
   } catch (err) {
+    console.log('[main] auto-subscribe failed', err)
     return { success: false, message: 'Error: ' + err.message }
   }
 })

@@ -9,6 +9,12 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+function debugLog(message, details) {
+  if (window.api?.debugLog) {
+    window.api.debugLog(message, details)
+  }
+}
+
 function updateSmartModeButton() {
   const button = document.getElementById('smart-mode-toggle')
   if (!button) return
@@ -39,6 +45,7 @@ function toggleSmartMode() {
   smartModeEnabled = !smartModeEnabled
   updateSmartModeButton()
   updateModeBadge()
+  debugLog('toggleSmartMode', { smartModeEnabled })
 
   const status = document.getElementById('subscribe-status')
   if (status) {
@@ -128,6 +135,8 @@ async function autoSubscribe() {
   const status = document.getElementById('subscribe-status')
   if (!status) return
 
+  debugLog('autoSubscribe:start', { queueLength: queue.length, index, smartModeEnabled })
+
   if (autoSubscribeEnabled) {
     status.style.display = 'block'
     status.className = 'mb-4 p-4 rounded-xl border bg-amber-50 border-amber-200'
@@ -156,11 +165,13 @@ async function autoSubscribe() {
       render()
 
       const link = queue[i]
+      debugLog('autoSubscribe:open-link', { index: i, link })
       status.className = 'mb-4 p-4 rounded-xl border bg-blue-50 border-blue-200'
       status.textContent = `🔗 Opening ${i + 1} of ${queue.length}...`
       status.style.color = '#1e40af'
 
       const openResult = await window.api.openLink(link)
+      debugLog('autoSubscribe:open-result', { index: i, openResult })
       if (openResult?.status === 'error') {
         subscribeStatus[link] = 'not-subscribed'
         status.className = 'mb-4 p-4 rounded-xl border bg-red-50 border-red-200'
@@ -177,6 +188,7 @@ async function autoSubscribe() {
       status.style.color = '#1e40af'
 
       const checkResult = await window.api.checkSubscribe()
+      debugLog('autoSubscribe:check-result', { index: i, checkResult })
       if (checkResult.status === 'error') {
         subscribeStatus[link] = 'not-subscribed'
         status.className = 'mb-4 p-4 rounded-xl border bg-red-50 border-red-200'
@@ -201,6 +213,7 @@ async function autoSubscribe() {
       status.style.color = '#5b21b6'
 
       const result = await window.api.autoSubscribe()
+      debugLog('autoSubscribe:auto-result', { index: i, result })
       if (result.success) {
         subscribeStatus[link] = 'subscribed'
         status.className = 'mb-4 p-4 rounded-xl border bg-emerald-50 border-emerald-200'
@@ -236,6 +249,7 @@ async function openNext() {
 
   const link = queue[index]
 
+  debugLog('openNext', { index, link })
   await window.api.openLink(link)
   index++
   render()
@@ -255,6 +269,7 @@ function startQueue() {
 async function runQueue() {
   if (index >= queue.length) return
 
+  debugLog('runQueue:step', { index, queueLength: queue.length, smartModeEnabled })
   await openNext()
 
   const delay = randomDelay()

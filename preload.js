@@ -5,5 +5,6 @@ contextBridge.exposeInMainWorld('api', {
   loadData: () => ipcRenderer.invoke('load-data'),
   saveData: (data) => ipcRenderer.invoke('save-data', data),
   checkSubscribe: () => ipcRenderer.invoke('check-subscribe'),
-  autoSubscribe: () => ipcRenderer.invoke('auto-subscribe')
+  autoSubscribe: () => ipcRenderer.invoke('auto-subscribe'),
+  debugLog: (message, details) => ipcRenderer.invoke('debug-log', { message, details })
 })
