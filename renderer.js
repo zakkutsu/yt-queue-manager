@@ -22,9 +22,23 @@ function updateSmartModeButton() {
   }
 }
 
+function updateModeBadge() {
+  const badge = document.getElementById('mode-badge')
+  if (!badge) return
+
+  if (smartModeEnabled) {
+    badge.textContent = 'Smart Mode Active'
+    badge.className = 'mb-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border border-emerald-200 bg-emerald-50 text-emerald-700'
+  } else {
+    badge.textContent = 'Manual Mode Active'
+    badge.className = 'mb-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-200 bg-slate-50 text-slate-700'
+  }
+}
+
 function toggleSmartMode() {
   smartModeEnabled = !smartModeEnabled
   updateSmartModeButton()
+  updateModeBadge()
 
   const status = document.getElementById('subscribe-status')
   if (status) {
@@ -42,6 +56,7 @@ function toggleSmartMode() {
 async function init() {
   queue = await window.api.loadData()
   updateSmartModeButton()
+  updateModeBadge()
   render()
 }
 
