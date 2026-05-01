@@ -104,6 +104,11 @@ ipcMain.handle('check-subscribe', async () => {
           const text = (el.textContent || '').trim().toLowerCase()
           const label = (el.getAttribute && (el.getAttribute('aria-label') || '')).trim().toLowerCase()
           const pressed = el.getAttribute && el.getAttribute('aria-pressed')
+          const className = typeof el.className === 'string' ? el.className.toLowerCase() : ''
+
+          if (className.includes('yt-icon-button')) return false
+          if (!text && !label) return false
+
           return pressed === 'true' ||
             text === 'subscribe' ||
             text === 'subscribed' ||
@@ -144,6 +149,11 @@ ipcMain.handle('check-subscribe', async () => {
           const text = (btn.textContent || '').trim().toLowerCase()
           const label = (btn.getAttribute('aria-label') || '').trim().toLowerCase()
           const pressed = btn.getAttribute('aria-pressed')
+          const className = typeof btn.className === 'string' ? btn.className.toLowerCase() : ''
+
+          if (className.includes('yt-icon-button')) return false
+          if (!text && !label) return false
+
           return pressed === 'true' || text === 'subscribed' || text === 'unsubscribe' || label === 'subscribed' || label === 'unsubscribe'
         }
 
@@ -215,6 +225,11 @@ ipcMain.handle('auto-subscribe', async () => {
           const text = (el.textContent || '').trim().toLowerCase()
           const label = (el.getAttribute && (el.getAttribute('aria-label') || '')).trim().toLowerCase()
           const pressed = el.getAttribute && el.getAttribute('aria-pressed')
+          const className = typeof el.className === 'string' ? el.className.toLowerCase() : ''
+
+          if (className.includes('yt-icon-button')) return false
+          if (!text && !label) return false
+
           return pressed === 'true' ||
             text === 'subscribe' ||
             text === 'subscribed' ||
@@ -255,6 +270,11 @@ ipcMain.handle('auto-subscribe', async () => {
           const text = (btn.textContent || '').trim().toLowerCase()
           const label = (btn.getAttribute('aria-label') || '').trim().toLowerCase()
           const pressed = btn.getAttribute('aria-pressed')
+          const className = typeof btn.className === 'string' ? btn.className.toLowerCase() : ''
+
+          if (className.includes('yt-icon-button')) return false
+          if (!text && !label) return false
+
           return pressed === 'true' || text === 'subscribed' || text === 'unsubscribe' || label === 'subscribed' || label === 'unsubscribe'
         }
 
