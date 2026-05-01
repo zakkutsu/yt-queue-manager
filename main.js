@@ -78,45 +78,65 @@ ipcMain.handle('check-subscribe', async () => {
     console.log('[main] check-subscribe started')
     const result = await ytWindow.webContents.executeJavaScript(`
       (async () => {
-        const getSubscribeButton = () => {
-          const buttons = Array.from(document.querySelectorAll('button'))
-          const candidates = [
-            ...document.querySelectorAll('ytd-subscribe-button-renderer button'),
-            ...document.querySelectorAll('ytd-subscribe-button-view-model button'),
-            ...document.querySelectorAll('yt-subscribe-button-view-model button'),
-            ...buttons
-          ]
+        const collectElements = (root, output, limit = 2000) => {
+          if (!root || output.length >= limit) return
 
-          const isExactSubscribeButton = (btn) => {
-            if (!btn) return false
-            const text = (btn.textContent || '').trim().toLowerCase()
-            const label = (btn.getAttribute('aria-label') || '').trim().toLowerCase()
-            const pressed = btn.getAttribute('aria-pressed')
-
-            return pressed === 'true' ||
-              text === 'subscribe' ||
-              text === 'subscribed' ||
-              text === 'unsubscribe' ||
-              label === 'subscribe' ||
-              label === 'subscribed' ||
-              label === 'unsubscribe' ||
-              label.startsWith('subscribe to ')
+          const walk = (node) => {
+            if (!node || output.length >= limit) return
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              output.push(node)
+              if (node.shadowRoot) {
+                collectElements(node.shadowRoot, output, limit)
+              }
+            }
+            const children = node.children || []
+            for (const child of children) {
+              walk(child)
+              if (output.length >= limit) return
+            }
           }
 
-          const dumpCandidates = () => candidates.slice(0, 20).map(btn => ({
-            text: (btn.textContent || '').trim(),
-            ariaLabel: (btn.getAttribute('aria-label') || '').trim(),
-            ariaPressed: btn.getAttribute('aria-pressed'),
-            tag: btn.tagName,
-            className: btn.className
-          }))
+          walk(root)
+        }
 
-          const found = candidates.find(isExactSubscribeButton)
-          if (!found) {
-            return { found: null, dump: dumpCandidates() }
+        const isSubscribeLike = (el) => {
+          if (!el) return false
+          const text = (el.textContent || '').trim().toLowerCase()
+          const label = (el.getAttribute && (el.getAttribute('aria-label') || '')).trim().toLowerCase()
+          const pressed = el.getAttribute && el.getAttribute('aria-pressed')
+          return pressed === 'true' ||
+            text === 'subscribe' ||
+            text === 'subscribed' ||
+            text === 'unsubscribe' ||
+            label === 'subscribe' ||
+            label === 'subscribed' ||
+            label === 'unsubscribe' ||
+            label.startsWith('subscribe to ')
+        }
+
+        const dumpElement = (el) => ({
+          text: (el.textContent || '').trim().slice(0, 120),
+          ariaLabel: (el.getAttribute && (el.getAttribute('aria-label') || '').trim()) || '',
+          ariaPressed: el.getAttribute && el.getAttribute('aria-pressed'),
+          tag: el.tagName,
+          role: el.getAttribute && el.getAttribute('role'),
+          className: typeof el.className === 'string' ? el.className : ''
+        })
+
+        const findSubscribeButton = () => {
+          const nodes = []
+          collectElements(document.body, nodes)
+          const matched = nodes.find(isSubscribeLike)
+
+          if (!matched) {
+            return { found: null, dump: nodes.filter(el => {
+              const text = (el.textContent || '').trim().toLowerCase()
+              const label = (el.getAttribute && (el.getAttribute('aria-label') || '').trim().toLowerCase()) || ''
+              return text.includes('subscribe') || label.includes('subscribe') || text.includes('subscriber') || label.includes('subscriber')
+            }).slice(0, 30).map(dumpElement) }
           }
 
-          return found
+          return { found: matched, dump: [dumpElement(matched)] }
         }
 
         const isSubscribedButton = (btn) => {
@@ -131,15 +151,11 @@ ipcMain.handle('check-subscribe', async () => {
         await new Promise(r => setTimeout(r, 2000))
         
         // Cari subscribe button
-        const subBtnResult = getSubscribeButton()
-        if (subBtnResult && subBtnResult.found === null) {
-          console.log('[yt debug] subscribe button candidates', JSON.stringify(subBtnResult.dump))
+        const subBtnResult = findSubscribeButton()
+        if (!subBtnResult.found) {
+          return { subscribed: 'unknown', message: 'Button not found', dump: subBtnResult.dump }
         }
-        const subBtn = subBtnResult && subBtnResult.found ? subBtnResult.found : null
-        
-        if (!subBtn) {
-          return { subscribed: 'unknown', message: 'Button not found' }
-        }
+        const subBtn = subBtnResult.found
         
         // Check if already subscribed (button text changed)
         const isSubscribed = isSubscribedButton(subBtn)
@@ -152,6 +168,9 @@ ipcMain.handle('check-subscribe', async () => {
       })()
     `)
     
+    if (result?.dump) {
+      console.log('[main] check-subscribe dump', result.dump)
+    }
     console.log('[main] check-subscribe result', result)
     return result
   } catch (err) {
@@ -168,45 +187,65 @@ ipcMain.handle('auto-subscribe', async () => {
     console.log('[main] auto-subscribe started')
     const result = await ytWindow.webContents.executeJavaScript(`
       (async () => {
-        const getSubscribeButton = () => {
-          const buttons = Array.from(document.querySelectorAll('button'))
-          const candidates = [
-            ...document.querySelectorAll('ytd-subscribe-button-renderer button'),
-            ...document.querySelectorAll('ytd-subscribe-button-view-model button'),
-            ...document.querySelectorAll('yt-subscribe-button-view-model button'),
-            ...buttons
-          ]
+        const collectElements = (root, output, limit = 2000) => {
+          if (!root || output.length >= limit) return
 
-          const isExactSubscribeButton = (btn) => {
-            if (!btn) return false
-            const text = (btn.textContent || '').trim().toLowerCase()
-            const label = (btn.getAttribute('aria-label') || '').trim().toLowerCase()
-            const pressed = btn.getAttribute('aria-pressed')
-
-            return pressed === 'true' ||
-              text === 'subscribe' ||
-              text === 'subscribed' ||
-              text === 'unsubscribe' ||
-              label === 'subscribe' ||
-              label === 'subscribed' ||
-              label === 'unsubscribe' ||
-              label.startsWith('subscribe to ')
+          const walk = (node) => {
+            if (!node || output.length >= limit) return
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              output.push(node)
+              if (node.shadowRoot) {
+                collectElements(node.shadowRoot, output, limit)
+              }
+            }
+            const children = node.children || []
+            for (const child of children) {
+              walk(child)
+              if (output.length >= limit) return
+            }
           }
 
-          const dumpCandidates = () => candidates.slice(0, 20).map(btn => ({
-            text: (btn.textContent || '').trim(),
-            ariaLabel: (btn.getAttribute('aria-label') || '').trim(),
-            ariaPressed: btn.getAttribute('aria-pressed'),
-            tag: btn.tagName,
-            className: btn.className
-          }))
+          walk(root)
+        }
 
-          const found = candidates.find(isExactSubscribeButton)
-          if (!found) {
-            return { found: null, dump: dumpCandidates() }
+        const isSubscribeLike = (el) => {
+          if (!el) return false
+          const text = (el.textContent || '').trim().toLowerCase()
+          const label = (el.getAttribute && (el.getAttribute('aria-label') || '')).trim().toLowerCase()
+          const pressed = el.getAttribute && el.getAttribute('aria-pressed')
+          return pressed === 'true' ||
+            text === 'subscribe' ||
+            text === 'subscribed' ||
+            text === 'unsubscribe' ||
+            label === 'subscribe' ||
+            label === 'subscribed' ||
+            label === 'unsubscribe' ||
+            label.startsWith('subscribe to ')
+        }
+
+        const dumpElement = (el) => ({
+          text: (el.textContent || '').trim().slice(0, 120),
+          ariaLabel: (el.getAttribute && (el.getAttribute('aria-label') || '').trim()) || '',
+          ariaPressed: el.getAttribute && el.getAttribute('aria-pressed'),
+          tag: el.tagName,
+          role: el.getAttribute && el.getAttribute('role'),
+          className: typeof el.className === 'string' ? el.className : ''
+        })
+
+        const findSubscribeButton = () => {
+          const nodes = []
+          collectElements(document.body, nodes)
+          const matched = nodes.find(isSubscribeLike)
+
+          if (!matched) {
+            return { found: null, dump: nodes.filter(el => {
+              const text = (el.textContent || '').trim().toLowerCase()
+              const label = (el.getAttribute && (el.getAttribute('aria-label') || '').trim().toLowerCase()) || ''
+              return text.includes('subscribe') || label.includes('subscribe') || text.includes('subscriber') || label.includes('subscriber')
+            }).slice(0, 30).map(dumpElement) }
           }
 
-          return found
+          return { found: matched, dump: [dumpElement(matched)] }
         }
 
         const isSubscribedButton = (btn) => {
@@ -362,12 +401,24 @@ ipcMain.handle('auto-subscribe', async () => {
         // Wait to observe result
         await new Promise(r => setTimeout(r, randomDelay(900, 2800)))
 
-        const refreshedBtn = getSubscribeButton() || subBtn
+        const refreshedBtn = findSubscribeButton().found || subBtn
         const isNowSubscribed = isSubscribedButton(refreshedBtn)
-        return { success: isNowSubscribed, message: isNowSubscribed ? 'Successfully subscribed! ✓' : 'Subscription may have failed' }
+        return { success: isNowSubscribed, message: isNowSubscribed ? 'Successfully subscribed! ✓' : 'Subscription may have failed', dump: isNowSubscribed ? [
+          {
+            text: (refreshedBtn.textContent || '').trim().slice(0, 120),
+            ariaLabel: (refreshedBtn.getAttribute('aria-label') || '').trim(),
+            ariaPressed: refreshedBtn.getAttribute('aria-pressed'),
+            tag: refreshedBtn.tagName,
+            role: refreshedBtn.getAttribute('role'),
+            className: typeof refreshedBtn.className === 'string' ? refreshedBtn.className : ''
+          }
+        ] : [] }
       })()
     `)
 
+    if (result?.dump) {
+      console.log('[main] auto-subscribe dump', result.dump)
+    }
     console.log('[main] auto-subscribe result', result)
     return result
   } catch (err) {
