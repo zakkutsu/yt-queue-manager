@@ -21,7 +21,7 @@ function createWindow() {
 
 app.whenReady().then(createWindow)
 
-// 🔥 buka link di window sendiri (bisa dikontrol)
+// 🔥 Open link in separate window (can be controlled)
 ipcMain.handle('open-link', (_, url) => {
   if (!ytWindow) {
     ytWindow = new BrowserWindow({
@@ -37,7 +37,7 @@ ipcMain.handle('open-link', (_, url) => {
   ytWindow.loadURL(url)
 })
 
-// load & save tetap sama
+// load & save data
 ipcMain.handle('load-data', () => {
   if (!fs.existsSync(DATA_PATH)) return []
   return JSON.parse(fs.readFileSync(DATA_PATH))
@@ -47,7 +47,7 @@ ipcMain.handle('save-data', (_, data) => {
   fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2))
 })
 
-// 🔍 deteksi subscribe status
+// 🔍 Detect subscribe status
 ipcMain.handle('check-subscribe', async () => {
   if (!ytWindow) return { status: 'error', message: 'YouTube window not open' }
 
@@ -70,14 +70,14 @@ ipcMain.handle('check-subscribe', async () => {
           return { subscribed: 'unknown', message: 'Button not found' }
         }
         
-        // Cek apakah sudah subscribe (button text berubah)
+        // Check if already subscribed (button text changed)
         const isSubscribed = subBtn.textContent.toLowerCase().includes('unsubscribe') || 
                             subBtn.getAttribute('aria-label')?.toLowerCase().includes('unsubscribe')
         
         return {
           subscribed: isSubscribed ? 'yes' : 'no',
           buttonText: subBtn.textContent,
-          message: isSubscribed ? 'Sudah subscribe' : 'Belum subscribe'
+          message: isSubscribed ? 'Already subscribed' : 'Not subscribed yet'
         }
       })()
     `)
@@ -88,24 +88,24 @@ ipcMain.handle('check-subscribe', async () => {
   }
 })
 
-// 🤖 auto-clicker humanoid
+// 🤖 Humanoid auto-clicker
 ipcMain.handle('auto-subscribe', async () => {
   if (!ytWindow) return { status: 'error', message: 'YouTube window not open' }
 
   try {
     const result = await ytWindow.webContents.executeJavaScript(`
       (async () => {
-        // Fungsi untuk random delay (manusia-like)
+        // Function for random delay (human-like)
         const randomDelay = (min, max) => Math.random() * (max - min) + min
         
-        // Fungsi untuk humanoid mouse movement
+        // Function for humanoid mouse movement
         const moveMouse = async (startX, startY, endX, endY, duration = 500) => {
           const steps = Math.floor(duration / 50) + Math.random() * 10
           const startTime = Date.now()
           
           for (let i = 0; i < steps; i++) {
             const progress = i / steps
-            // Easing function untuk movement lebih natural
+            // Easing function for more natural movement
             const easeProgress = progress < 0.5 
               ? 2 * progress * progress 
               : -1 + (4 - 2 * progress) * progress
@@ -113,7 +113,7 @@ ipcMain.handle('auto-subscribe', async () => {
             const x = startX + (endX - startX) * easeProgress
             const y = startY + (endY - startY) * easeProgress
             
-            // Simulasi mouse move dengan custom event
+            // Simulate mouse move with custom event
             const event = new MouseEvent('mousemove', {
               bubbles: true,
               clientX: x,
@@ -143,25 +143,25 @@ ipcMain.handle('auto-subscribe', async () => {
           return { success: false, message: 'Subscribe button not found' }
         }
         
-        // Cek apakah sudah subscribe
+        // Check if already subscribed
         const alreadySubscribed = subBtn.textContent.toLowerCase().includes('unsubscribe')
         if (alreadySubscribed) {
-          return { success: false, message: 'Sudah subscribe' }
+          return { success: false, message: 'Already subscribed' }
         }
         
         // Get button position
         const rect = subBtn.getBoundingClientRect()
-        const btnX = rect.left + rect.width / 2 + (Math.random() - 0.5) * 20 // jitter
+        const btnX = rect.left + rect.width / 2 + (Math.random() - 0.5) * 20
         const btnY = rect.top + rect.height / 2 + (Math.random() - 0.5) * 10
         
-        // Random starting position (jarak jauh)
+        // Random starting position (far away)
         const startX = Math.random() * window.innerWidth
         const startY = Math.random() * window.innerHeight
         
-        // Humanoid mouse movement ke button
+        // Humanoid mouse movement to button
         await moveMouse(startX, startY, btnX, btnY, 800 + Math.random() * 400)
         
-        // Pause sebelum hover (manusia biasanya akan hover dulu)
+        // Pause before hover (humans usually hover first)
         await new Promise(r => setTimeout(r, randomDelay(200, 800)))
         
         // Hover event
@@ -174,15 +174,15 @@ ipcMain.handle('auto-subscribe', async () => {
         
         await new Promise(r => setTimeout(r, randomDelay(300, 700)))
         
-        // Random pause untuk "membaca" atau "mempertimbangkan"
+        // Random pause to "read" or "consider"
         if (Math.random() < 0.5) {
           await new Promise(r => setTimeout(r, randomDelay(500, 1500)))
         }
         
-        // Click dengan timing yang natural
+        // Click with natural timing
         subBtn.click()
         
-        // Dispatch click event juga
+        // Dispatch click event too
         const clickEvent = new MouseEvent('click', {
           bubbles: true,
           cancelable: true,
@@ -191,15 +191,15 @@ ipcMain.handle('auto-subscribe', async () => {
         })
         subBtn.dispatchEvent(clickEvent)
         
-        // Wait untuk see response
+        // Wait to see response
         await new Promise(r => setTimeout(r, 2000))
         
-        // Verifikasi apakah berhasil
+        // Verify if successful
         const isNowSubscribed = subBtn.textContent.toLowerCase().includes('unsubscribe')
         
         return {
           success: isNowSubscribed,
-          message: isNowSubscribed ? 'Berhasil subscribe! ✓' : 'Mungkin gagal subscribe'
+          message: isNowSubscribed ? 'Successfully subscribed! ✓' : 'Subscription may have failed'
         }
       })()
     `)

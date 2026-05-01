@@ -42,37 +42,37 @@
         <!-- Header -->
         <header class="mb-8">
             <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
-                YouTube Channel Queue
+                YouTube Channel Queue Manager
             </h1>
-            <p class="text-slate-500 mt-1 text-sm">Kelola daftar antrean channel YouTube Anda dengan mudah.</p>
+            <p class="text-slate-500 mt-1 text-sm">Manage your YouTube channel queue and automate subscriptions effortlessly.</p>
         </header>
 
         <!-- Main Input Card -->
         <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-6">
-            <label for="link-input" class="block text-sm font-medium text-slate-700 mb-2">Daftar Link Channel</label>
+            <label for="link-input" class="block text-sm font-medium text-slate-700 mb-2">Channel Links</label>
             <div class="relative">
                 <textarea 
                     id="link-input" 
                     rows="6" 
                     class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 block p-4 transition-colors placeholder-slate-400 resize-y" 
-                    placeholder="Paste link per baris di sini..."
+                    placeholder="Paste one link per line..."
                 ></textarea>
             </div>
             
             <!-- Input Actions -->
             <div class="flex justify-end gap-3 mt-4">
                 <button onclick="clearQueue()" class="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors">
-                    Clear
+                    Clear Input
                 </button>
                 <button onclick="addLinks()" class="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm transition-colors">
-                    Tambah ke Antrean
+                    Add to Queue
                 </button>
             </div>
         </section>
 
         <!-- Control Panel Card -->
         <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-6">
-            <h2 class="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">Kontrol Antrean</h2>
+            <h2 class="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">Queue Control</h2>
             
             <div class="flex flex-wrap gap-x-4 gap-y-4">
                 
@@ -97,7 +97,7 @@
                         Restart
                     </button>
                     <button onclick="resetIndex()" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-                        Reset ke Awal
+                        Reset Index
                     </button>
                 </div>
             </div>
@@ -114,7 +114,7 @@
 
         <!-- Queue List Section -->
         <section class="mt-8">
-            <h2 class="text-xl font-semibold text-slate-900 mb-4">Daftar Antrean (Queue)</h2>
+            <h2 class="text-xl font-semibold text-slate-900 mb-4">Queue List</h2>
             
             <!-- Subscribe Status (conditional) -->
             <div id="subscribe-status" class="mb-4 p-4 rounded-xl border hidden" style="display: none;"></div>
@@ -125,7 +125,7 @@
                     <!-- Queue items will be rendered here -->
                 </div>
                 <div id="empty-state" class="p-8 text-center border-dashed">
-                    <p class="text-slate-500 text-sm">Belum ada antrean. Masukkan link dan klik "Tambah ke Antrean".</p>
+                    <p class="text-slate-500 text-sm">No queue items yet. Add links and click "Add to Queue".</p>
                 </div>
             </div>
         </section>

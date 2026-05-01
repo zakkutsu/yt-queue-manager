@@ -64,7 +64,7 @@ function render() {
           ${isActive ? '<span class="text-xl">▶</span>' : '<span class="text-slate-300 text-lg">•</span>'}
           <p class="text-sm font-medium text-slate-900 truncate">${link}</p>
         </div>
-        <p class="text-xs text-slate-500 mt-1">Item ${i + 1} dari ${queue.length}</p>
+        <p class="text-xs text-slate-500 mt-1">Item ${i + 1} of ${queue.length}</p>
       </div>
       <span class="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ml-4 ${statusBg}">${statusText}</span>
     `
@@ -83,7 +83,7 @@ async function autoSubscribe() {
   status.style.color = '#1e40af'
 
   try {
-    // Step 1: Cek status subscribe dulu
+    // Step 1: Check subscription status first
     const checkResult = await window.api.checkSubscribe()
     
     if (checkResult.status === 'error') {
@@ -93,10 +93,10 @@ async function autoSubscribe() {
       return
     }
 
-    // Step 2: Jika sudah subscribe, skip
+    // Step 2: If already subscribed, skip
     if (checkResult.subscribed === 'yes') {
       status.className = 'mb-4 p-4 rounded-xl border bg-emerald-50 border-emerald-200'
-      status.textContent = '✅ Sudah subscribe! Skip...'
+      status.textContent = '✅ Already subscribed! Skipping...'
       status.style.color = '#065f46'
       
       if (index < queue.length) {
@@ -106,7 +106,7 @@ async function autoSubscribe() {
       return
     }
 
-    // Step 3: Belum subscribe, proceed dengan auto subscribe
+    // Step 3: Not subscribed, proceed with auto subscribe
     status.className = 'mb-4 p-4 rounded-xl border bg-violet-50 border-violet-200'
     status.textContent = '🤖 Auto-subscribing... (humanoid mode)'
     status.style.color = '#5b21b6'
