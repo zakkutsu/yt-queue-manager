@@ -40,7 +40,10 @@ ipcMain.handle('open-link', async (_, url) => {
   if (!ytWindow) {
     ytWindow = new BrowserWindow({
       width: 1200,
-      height: 800
+      height: 800,
+      webPreferences: {
+        backgroundThrottling: false
+      }
     })
 
     // Stealth: Remove Electron and App specific User-Agent fingerprint
@@ -139,7 +142,7 @@ ipcMain.handle('check-subscribe', async () => {
         const findSubscribeButton = () => {
           const nodes = []
           collectElements(document.body, nodes)
-          const matched = nodes.find(isSubscribeLike)
+          const matched = [...nodes].reverse().find(isSubscribeLike)
 
           if (!matched) {
             return { found: null, dump: nodes.filter(el => {
@@ -214,6 +217,40 @@ ipcMain.handle('check-subscribe', async () => {
   }
 })
 
+// 📺 Auto watch video
+ipcMain.handle('watch-video', async () => {
+  if (!ytWindow) return { success: false, message: 'YouTube window not open' }
+
+  try {
+    console.log('[main] watch-video started')
+    const videoUrl = await ytWindow.webContents.executeJavaScript(`
+        (() => {
+            // Find all anchor tags that look like a video link
+            const videoLinks = Array.from(document.querySelectorAll('a')).filter(a => {
+                const href = a.href || '';
+                return href.includes('/watch?v=') && !href.includes('&list=');
+            });
+            if(videoLinks.length > 0) {
+                // Return a random video link from the top 5
+                const target = videoLinks[Math.floor(Math.random() * Math.min(5, videoLinks.length))];
+                return target.href;
+            }
+            return null;
+        })()
+    `);
+    
+    if (videoUrl) {
+        console.log('[main] navigating to video:', videoUrl)
+        await ytWindow.loadURL(videoUrl)
+        return { success: true, message: 'Watching video...' }
+    }
+    return { success: false, message: 'No video found on channel' }
+  } catch (err) {
+    console.log('[main] watch-video failed', err)
+    return { success: false, message: err.message }
+  }
+})
+
 // 🤖 Humanoid auto-clicker
 ipcMain.handle('auto-subscribe', async () => {
   if (!ytWindow) return { status: 'error', message: 'YouTube window not open' }
@@ -275,7 +312,7 @@ ipcMain.handle('auto-subscribe', async () => {
         const findSubscribeButton = () => {
           const nodes = []
           collectElements(document.body, nodes)
-          const matched = nodes.find(isSubscribeLike)
+          const matched = [...nodes].reverse().find(isSubscribeLike)
 
           if (!matched) {
             return { found: null, dump: nodes.filter(el => {
@@ -460,7 +497,7 @@ ipcMain.handle('auto-subscribe', async () => {
                         label.startsWith('unsubscribe from ')
                 }
 
-                const matched = nodes.find(isSubscribeLike)
+                const matched = [...nodes].reverse().find(isSubscribeLike)
                 const getClickable = (el) => {
                     let curr = el
                     while (curr && curr !== document.body && curr !== document) {
@@ -474,8 +511,18 @@ ipcMain.handle('auto-subscribe', async () => {
                 }
                 
                 const btn = matched ? getClickable(matched) : null
-                const isNowSubscribed = isSubscribedButton(btn)
-                return { isNowSubscribed, btnFound: !!btn }
+                let isNowSubscribed = isSubscribedButton(btn)
+                
+                // === FALLBACK ===
+                // If hardware click failed (possibly due to window not being active), try JS click fallback
+                if (!isNowSubscribed && btn) {
+                    btn.click();
+                    await new Promise(r => setTimeout(r, 1000));
+                    isNowSubscribed = isSubscribedButton(btn);
+                    return { isNowSubscribed, btnFound: true, fallbackUsed: true };
+                }
+
+                return { isNowSubscribed, btnFound: !!btn, fallbackUsed: false }
             })()
         `)
 

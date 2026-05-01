@@ -60,6 +60,31 @@ function toggleSmartMode() {
   }
 }
 
+function updateSpeedWarning() {
+  const profile = document.getElementById('speed-profile')?.value
+  const warning = document.getElementById('speed-warning')
+  const watchContainer = document.getElementById('watch-video-container')
+  const watchToggle = document.getElementById('watch-video-toggle')
+  if (!warning) return
+  
+  if (profile === 'fast' || profile === 'very-fast') {
+    warning.style.display = 'block'
+  } else {
+    warning.style.display = 'none'
+  }
+
+  if (watchToggle && watchContainer) {
+    if (profile === 'very-fast') {
+      watchToggle.checked = false
+      watchToggle.disabled = true
+      watchContainer.classList.add('opacity-50', 'pointer-events-none')
+    } else {
+      watchToggle.disabled = false
+      watchContainer.classList.remove('opacity-50', 'pointer-events-none')
+    }
+  }
+}
+
 async function init() {
   queue = await window.api.loadData()
   updateSmartModeButton()
@@ -201,12 +226,31 @@ async function autoSubscribe() {
       if (checkResult.subscribed === 'yes') {
         subscribeStatus[link] = 'subscribed'
         status.className = 'mb-4 p-4 rounded-xl border bg-emerald-50 border-emerald-200'
-        status.textContent = `✅ Already subscribed for item ${i + 1}.`
+        status.textContent = `✅ Already subscribed for item ${i + 1}. Skipping...`
         status.style.color = '#065f46'
         render()
-        await sleep(randomDelay())
+        await sleep(500) // Skip instantly if already subscribed!
         continue
       }
+
+      // === WATCH VIDEO OPTION ===
+      const watchVideoEnabled = document.getElementById('watch-video-toggle')?.checked;
+      if (watchVideoEnabled) {
+          status.className = 'mb-4 p-4 rounded-xl border bg-violet-50 border-violet-200'
+          status.textContent = `📺 Membuka video untuk ditonton...`
+          status.style.color = '#5b21b6'
+          
+          const watchResult = await window.api.watchVideo()
+          if (watchResult.success) {
+              const watchTime = Math.floor(Math.random() * 15000) + 20000; // 20s - 35s
+              status.textContent = `📺 Menonton video selama ${Math.round(watchTime/1000)} detik untuk keamanan...`
+              await sleep(watchTime);
+          } else {
+              status.textContent = `⚠️ Gagal mencari video di channel ini, lanjut subscribe...`
+              await sleep(2000);
+          }
+      }
+      // ==========================
 
       status.className = 'mb-4 p-4 rounded-xl border bg-violet-50 border-violet-200'
       status.textContent = `🤖 Auto-subscribing item ${i + 1}...`
@@ -315,7 +359,19 @@ function resetIndex() {
 }
 
 function randomDelay() {
-  return Math.floor(Math.random() * (7000 - 4000)) + 4000
+  const profile = document.getElementById('speed-profile')?.value || 'normal'
+  
+  let min = 15000, max = 30000; // normal
+  
+  if (profile === 'very-fast') {
+    min = 3000; max = 5000;
+  } else if (profile === 'fast') {
+    min = 5000; max = 10000;
+  } else if (profile === 'safe') {
+    min = 30000; max = 60000;
+  }
+  
+  return Math.floor(Math.random() * (max - min)) + min
 }
 
 init()

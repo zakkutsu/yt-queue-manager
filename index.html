@@ -108,12 +108,38 @@
 
             <hr class="my-5 border-slate-200">
 
-            <!-- Specific Actions -->
-            <div class="flex flex-wrap gap-3">
+            <!-- Specific Actions & Settings -->
+            <div class="flex flex-col sm:flex-row gap-4 mt-2">
                 <button id="smart-mode-toggle" onclick="toggleSmartMode()" class="px-5 py-2.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 hover:border-emerald-300 transition-colors">
                     Smart Mode: ON
                 </button>
+                
+                <div class="w-px h-10 bg-slate-200 hidden sm:block"></div>
+
+                <div class="flex items-center gap-3">
+                    <label for="speed-profile" class="text-sm font-medium text-slate-700 whitespace-nowrap">Interval Transisi:</label>
+                    <select id="speed-profile" onchange="updateSpeedWarning()" class="bg-white border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 cursor-pointer shadow-sm">
+                        <option value="very-fast">Sangat Cepat (3-5s) ⚠️</option>
+                        <option value="fast">Cepat (5-10s) ⚠️</option>
+                        <option value="normal" selected>Normal (15-30s)</option>
+                        <option value="safe">Sangat Aman (30-60s)</option>
+                    </select>
+                </div>
+
+                <div class="w-px h-10 bg-slate-200 hidden sm:block"></div>
+
+                <div class="flex flex-col justify-center" id="watch-video-container">
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                        <input type="checkbox" id="watch-video-toggle" class="w-4 h-4 text-emerald-600 bg-slate-100 border-slate-300 rounded focus:ring-emerald-500 focus:ring-2 cursor-pointer disabled:cursor-not-allowed">
+                        <span class="text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">Tonton Video (30s) 🛡️</span>
+                    </label>
+                    <span class="text-[10px] text-slate-500 mt-0.5 ml-6 italic">Sangat disarankan! Membuat pola klik Anda terlihat seperti manusia asli dan mencegah deteksi spam.</span>
+                </div>
             </div>
+            
+            <p id="speed-warning" class="text-xs text-amber-700 hidden mt-3 bg-amber-50 border border-amber-200 p-2.5 rounded-lg font-medium">
+                ⚠️ <span class="font-bold">Peringatan Risiko:</span> Mode Cepat berpotensi lebih mudah dideteksi sebagai spam oleh sistem YouTube. Gunakan hanya untuk antrean pendek!
+            </p>
         </section>
 
         <!-- Queue List Section -->
