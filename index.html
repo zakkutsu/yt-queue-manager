@@ -1,66 +1,140 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-  <title>YT Queue</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f5f5f5;
-    }
-    button {
-      padding: 8px 15px;
-      margin: 5px;
-      cursor: pointer;
-      border: none;
-      border-radius: 4px;
-      background: #007bff;
-      color: white;
-      font-weight: bold;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    #subscribe-status {
-      font-size: 16px;
-      font-weight: bold;
-      margin: 10px 0;
-      padding: 10px;
-      border-radius: 4px;
-      background: #e9ecef;
-    }
-    .button-group {
-      margin: 10px 0;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Channel Queue</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar for text area */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
 </head>
-<body>
-  <h2>YouTube Channel Queue</h2>
+<body class="bg-slate-50 text-slate-800 min-h-screen p-4 md:p-8">
 
-  <textarea id="input" rows="10" style="width:100%" placeholder="paste link per baris"></textarea>
+    <div class="max-w-4xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
+                YouTube Channel Queue
+            </h1>
+            <p class="text-slate-500 mt-1 text-sm">Kelola daftar antrean channel YouTube Anda dengan mudah.</p>
+        </header>
 
-  <br><br>
+        <!-- Main Input Card -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-6">
+            <label for="link-input" class="block text-sm font-medium text-slate-700 mb-2">Daftar Link Channel</label>
+            <div class="relative">
+                <textarea 
+                    id="link-input" 
+                    rows="6" 
+                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 block p-4 transition-colors placeholder-slate-400 resize-y" 
+                    placeholder="Paste link per baris di sini..."
+                ></textarea>
+            </div>
+            
+            <!-- Input Actions -->
+            <div class="flex justify-end gap-3 mt-4">
+                <button onclick="clearQueue()" class="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                    Clear
+                </button>
+                <button onclick="addLinks()" class="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm transition-colors">
+                    Tambah ke Antrean
+                </button>
+            </div>
+        </section>
 
-  <div class="button-group">
-    <button onclick="addLinks()">Tambah</button>
-    <button onclick="startQueue()">START</button>
-    <button onclick="openNext()">NEXT</button>
-    <button onclick="clearQueue()">CLEAR</button>
-    <button onclick="stopQueue()">STOP</button>
-    <button onclick="restartQueue()">RESTART</button>
-    <button onclick="resetIndex()">RESET KE AWAL</button>
-  </div>
+        <!-- Control Panel Card -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-6">
+            <h2 class="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">Kontrol Antrean</h2>
+            
+            <div class="flex flex-wrap gap-x-4 gap-y-4">
+                
+                <!-- Playback Controls (Grouped) -->
+                <div class="flex items-center bg-slate-100/50 p-1 rounded-xl border border-slate-200">
+                    <button onclick="startQueue()" class="px-4 py-2 text-sm font-semibold text-slate-900 bg-white shadow-sm rounded-lg hover:text-blue-600 transition-colors">
+                        START
+                    </button>
+                    <button onclick="openNext()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
+                        NEXT
+                    </button>
+                    <button onclick="stopQueue()" class="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors">
+                        STOP
+                    </button>
+                </div>
 
-  <div class="button-group">
-    <button onclick="checkSubscribe()" style="background: #28a745;">CHECK SUBSCRIBE</button>
-    <button onclick="autoSubscribe()" style="background: #dc3545;">🤖 AUTO SUBSCRIBE</button>
-  </div>
+                <div class="w-px bg-slate-200 hidden sm:block"></div>
 
-  <div id="subscribe-status" style="display: none;"></div>
+                <!-- Reset Controls -->
+                <div class="flex items-center gap-2">
+                    <button onclick="restartQueue()" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                        Restart
+                    </button>
+                    <button onclick="resetIndex()" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                        Reset ke Awal
+                    </button>
+                </div>
+            </div>
 
-  <h3>Queue</h3>
-  <ul id="list"></ul>
+            <hr class="my-5 border-slate-200">
 
-  <script src="renderer.js"></script>
+            <!-- Specific Actions -->
+            <div class="flex flex-wrap gap-3">
+                <button onclick="checkSubscribe()" class="px-5 py-2.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 hover:border-emerald-300 transition-colors">
+                    ✓ Check Subscribe
+                </button>
+                <button onclick="autoSubscribe()" class="px-5 py-2.5 text-sm font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 hover:border-rose-300 transition-colors">
+                    🤖 Auto Subscribe
+                </button>
+            </div>
+        </section>
+
+        <!-- Queue List Section -->
+        <section class="mt-8">
+            <h2 class="text-xl font-semibold text-slate-900 mb-4">Daftar Antrean (Queue)</h2>
+            
+            <!-- Subscribe Status (conditional) -->
+            <div id="subscribe-status" class="mb-4 p-4 rounded-xl border hidden" style="display: none;"></div>
+
+            <!-- Queue List Container -->
+            <div id="queue-container" class="bg-white rounded-2xl border border-slate-200 shadow-sm">
+                <div id="list" class="divide-y divide-slate-200">
+                    <!-- Queue items will be rendered here -->
+                </div>
+                <div id="empty-state" class="p-8 text-center border-dashed">
+                    <p class="text-slate-500 text-sm">Belum ada antrean. Masukkan link dan klik "Tambah ke Antrean".</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script src="renderer.js"></script>
 </body>
 </html>
