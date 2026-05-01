@@ -1,6 +1,8 @@
 let queue = []
 let index = 0
 let timer = null
+let autoSubscribeEnabled = false
+let subscribeStatus = {}
 
 async function init() {
   queue = await window.api.loadData()
@@ -28,9 +30,71 @@ function render() {
 
   queue.forEach((link, i) => {
     const li = document.createElement('li')
-    li.textContent = (i === index ? '👉 ' : '') + link
+    const status = subscribeStatus[link] ? ` [${subscribeStatus[link]}]` : ''
+    li.textContent = (i === index ? '👉 ' : '') + link + status
     list.appendChild(li)
   })
+}
+
+async function checkSubscribe() {
+  const status = document.getElementById('subscribe-status')
+  if (!status) return
+
+  status.style.display = 'block'
+  status.textContent = '⏳ Checking...'
+  status.style.color = 'orange'
+
+  try {
+    const result = await window.api.checkSubscribe()
+    
+    if (result.status === 'error') {
+      status.textContent = '❌ ' + result.message
+      status.style.color = 'red'
+    } else {
+      const isSubscribed = result.subscribed === 'yes'
+      status.textContent = isSubscribed ? '✅ Sudah Subscribe' : '🔴 Belum Subscribe'
+      status.style.color = isSubscribed ? 'green' : 'red'
+      
+      // Save status
+      if (index < queue.length) {
+        subscribeStatus[queue[index]] = isSubscribed ? 'subscribed' : 'not-subscribed'
+      }
+      render()
+    }
+  } catch (err) {
+    status.textContent = '❌ Error: ' + err.message
+    status.style.color = 'red'
+  }
+}
+
+async function autoSubscribe() {
+  const status = document.getElementById('subscribe-status')
+  if (!status) return
+
+  status.style.display = 'block'
+  status.textContent = '🤖 Auto-subscribing... (humanoid mode)'
+  status.style.color = 'blue'
+
+  try {
+    const result = await window.api.autoSubscribe()
+    
+    if (result.success) {
+      status.textContent = '✅ ' + result.message
+      status.style.color = 'green'
+      
+      if (index < queue.length) {
+        subscribeStatus[queue[index]] = 'subscribed'
+      }
+    } else {
+      status.textContent = '⚠️ ' + result.message
+      status.style.color = 'orange'
+    }
+    
+    render()
+  } catch (err) {
+    status.textContent = '❌ Error: ' + err.message
+    status.style.color = 'red'
+  }
 }
 
 function openNext() {
@@ -42,6 +106,11 @@ function openNext() {
 
   index++
   render()
+  
+  // Auto-check subscribe status setelah buka link
+  setTimeout(() => {
+    checkSubscribe()
+  }, 3000)
 }
 
 function startQueue() {
