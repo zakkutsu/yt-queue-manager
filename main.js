@@ -54,25 +54,37 @@ ipcMain.handle('check-subscribe', async () => {
   try {
     const result = await ytWindow.webContents.executeJavaScript(`
       (async () => {
+        const getSubscribeButton = () => {
+          const buttons = Array.from(document.querySelectorAll('button'))
+          return document.querySelector('[aria-label*="Subscribe" i], [aria-label*="Subscribed" i], [aria-label*="Unsubscribe" i]') ||
+            buttons.find(btn => {
+              const text = (btn.textContent || '').toLowerCase()
+              const label = (btn.getAttribute('aria-label') || '').toLowerCase()
+              return text.includes('subscribe') || text.includes('subscribed') || text.includes('unsubscribe') ||
+                label.includes('subscribe') || label.includes('subscribed') || label.includes('unsubscribe')
+            })
+        }
+
+        const isSubscribedButton = (btn) => {
+          if (!btn) return false
+          const text = (btn.textContent || '').toLowerCase()
+          const label = (btn.getAttribute('aria-label') || '').toLowerCase()
+          const pressed = btn.getAttribute('aria-pressed')
+          return pressed === 'true' || text.includes('subscribed') || text.includes('unsubscribe') || label.includes('unsubscribe') || label.includes('subscribed')
+        }
+
         // Tunggu page load
         await new Promise(r => setTimeout(r, 2000))
         
         // Cari subscribe button
-        let subBtn = document.querySelector('[aria-label*="Subscribe"], [aria-label*="subscribe"]')
-        
-        if (!subBtn) {
-          subBtn = Array.from(document.querySelectorAll('button')).find(btn => 
-            btn.textContent.toLowerCase().includes('subscribe')
-          )
-        }
+        const subBtn = getSubscribeButton()
         
         if (!subBtn) {
           return { subscribed: 'unknown', message: 'Button not found' }
         }
         
         // Check if already subscribed (button text changed)
-        const isSubscribed = subBtn.textContent.toLowerCase().includes('unsubscribe') || 
-                            subBtn.getAttribute('aria-label')?.toLowerCase().includes('unsubscribe')
+        const isSubscribed = isSubscribedButton(subBtn)
         
         return {
           subscribed: isSubscribed ? 'yes' : 'no',
@@ -95,6 +107,25 @@ ipcMain.handle('auto-subscribe', async () => {
   try {
     const result = await ytWindow.webContents.executeJavaScript(`
       (async () => {
+        const getSubscribeButton = () => {
+          const buttons = Array.from(document.querySelectorAll('button'))
+          return document.querySelector('[aria-label*="Subscribe" i], [aria-label*="Subscribed" i], [aria-label*="Unsubscribe" i]') ||
+            buttons.find(btn => {
+              const text = (btn.textContent || '').toLowerCase()
+              const label = (btn.getAttribute('aria-label') || '').toLowerCase()
+              return text.includes('subscribe') || text.includes('subscribed') || text.includes('unsubscribe') ||
+                label.includes('subscribe') || label.includes('subscribed') || label.includes('unsubscribe')
+            })
+        }
+
+        const isSubscribedButton = (btn) => {
+          if (!btn) return false
+          const text = (btn.textContent || '').toLowerCase()
+          const label = (btn.getAttribute('aria-label') || '').toLowerCase()
+          const pressed = btn.getAttribute('aria-pressed')
+          return pressed === 'true' || text.includes('subscribed') || text.includes('unsubscribe') || label.includes('unsubscribe') || label.includes('subscribed')
+        }
+
         // Utilities
         const rand = (a, b) => Math.random() * (b - a) + a
         const gauss = (() => {
@@ -193,16 +224,13 @@ ipcMain.handle('auto-subscribe', async () => {
         await new Promise(r => setTimeout(r, randomDelay(1200, 2600)))
 
         // Find subscribe button
-        let subBtn = document.querySelector('[aria-label*="Subscribe"], [aria-label*="subscribe"]')
-        if (!subBtn) {
-          subBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.toLowerCase().includes('subscribe'))
-        }
+        const subBtn = getSubscribeButton()
         if (!subBtn) {
           return { success: false, message: 'Subscribe button not found' }
         }
 
         // Check if already subscribed
-        const alreadySubscribed = subBtn.textContent.toLowerCase().includes('unsubscribe')
+        const alreadySubscribed = isSubscribedButton(subBtn)
         if (alreadySubscribed) {
           return { success: false, message: 'Already subscribed' }
         }
@@ -239,7 +267,8 @@ ipcMain.handle('auto-subscribe', async () => {
         // Wait to observe result
         await new Promise(r => setTimeout(r, randomDelay(900, 2800)))
 
-        const isNowSubscribed = subBtn.textContent.toLowerCase().includes('unsubscribe')
+        const refreshedBtn = getSubscribeButton() || subBtn
+        const isNowSubscribed = isSubscribedButton(refreshedBtn)
         return { success: isNowSubscribed, message: isNowSubscribed ? 'Successfully subscribed! ✓' : 'Subscription may have failed' }
       })()
     `)
