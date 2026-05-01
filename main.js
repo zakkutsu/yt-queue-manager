@@ -95,115 +95,155 @@ ipcMain.handle('auto-subscribe', async () => {
   try {
     const result = await ytWindow.webContents.executeJavaScript(`
       (async () => {
-        // Function for random delay (human-like)
-        const randomDelay = (min, max) => Math.random() * (max - min) + min
-        
-        // Function for humanoid mouse movement
-        const moveMouse = async (startX, startY, endX, endY, duration = 500) => {
-          const steps = Math.floor(duration / 50) + Math.random() * 10
-          const startTime = Date.now()
-          
-          for (let i = 0; i < steps; i++) {
-            const progress = i / steps
-            // Easing function for more natural movement
-            const easeProgress = progress < 0.5 
-              ? 2 * progress * progress 
-              : -1 + (4 - 2 * progress) * progress
-            
-            const x = startX + (endX - startX) * easeProgress
-            const y = startY + (endY - startY) * easeProgress
-            
-            // Simulate mouse move with custom event
-            const event = new MouseEvent('mousemove', {
-              bubbles: true,
-              clientX: x,
-              clientY: y,
-              screenX: x,
-              screenY: y
-            })
-            document.elementFromPoint(x, y)?.dispatchEvent(event)
-            
-            await new Promise(r => setTimeout(r, 30 + Math.random() * 40))
+        // Utilities
+        const rand = (a, b) => Math.random() * (b - a) + a
+        const gauss = (() => {
+          // Box-Muller transform
+          let spare = null
+          return () => {
+            if (spare !== null) { const val = spare; spare = null; return val }
+            let u = 0, v = 0
+            while (u === 0) u = Math.random()
+            while (v === 0) v = Math.random()
+            const mag = Math.sqrt(-2.0 * Math.log(u))
+            spare = mag * Math.sin(2.0 * Math.PI * v)
+            return mag * Math.cos(2.0 * Math.PI * v)
+          }
+        })()
+
+        // Cubic bezier helpers
+        const cubic = (t, p0, p1, p2, p3) => {
+          const u = 1 - t
+          return u*u*u*p0 + 3*u*u*t*p1 + 3*u*t*t*p2 + t*t*t*p3
+        }
+        const pointOnCubic = (t, sx, sy, c1x, c1y, c2x, c2y, ex, ey) => ({
+          x: cubic(t, sx, c1x, c2x, ex),
+          y: cubic(t, sy, c1y, c2y, ey)
+        })
+        const generateControlPoints = (sx, sy, ex, ey) => {
+          const dx = ex - sx, dy = ey - sy
+          const dist = Math.hypot(dx, dy) || 1
+          const angle = Math.atan2(dy, dx)
+          const spread = Math.min(0.8, dist / 300)
+          const c1angle = angle + rand(-0.8, 0.8)
+          const c2angle = angle + rand(-0.8, 0.8)
+          const c1dist = dist * rand(0.15, 0.6)
+          const c2dist = dist * rand(0.15, 0.6)
+          return {
+            c1x: sx + Math.cos(c1angle) * c1dist,
+            c1y: sy + Math.sin(c1angle) * c1dist,
+            c2x: sx + Math.cos(c2angle) * (dist - c2dist),
+            c2y: sy + Math.sin(c2angle) * (dist - c2dist)
           }
         }
-        
-        // Tunggu page load
-        await new Promise(r => setTimeout(r, 2000))
-        
-        // Cari subscribe button
-        let subBtn = document.querySelector('[aria-label*="Subscribe"], [aria-label*="subscribe"]')
-        
-        if (!subBtn) {
-          subBtn = Array.from(document.querySelectorAll('button')).find(btn => 
-            btn.textContent.toLowerCase().includes('subscribe')
-          )
+
+        // Human-like move function using randomized cubic bezier path,
+        // variable speed profile, micro-jitter, occasional overshoot/correction.
+        const moveMouse = async (sx, sy, ex, ey, duration = 800) => {
+          const cp = generateControlPoints(sx, sy, ex, ey)
+          const steps = Math.max(12, Math.floor(duration / 12))
+
+          for (let i = 0; i < steps; i++) {
+            const progress = (i + 1) / steps
+            // speed profile: easeInOut combined with slight randomness
+            const ease = progress < 0.5 ? 2*progress*progress : -1 + (4 - 2*progress)*progress
+            const jitter = Math.sin(progress * Math.PI) * rand(-0.08, 0.08)
+            const t = Math.max(0, Math.min(1, ease + jitter))
+
+            const p = pointOnCubic(t, sx, sy, cp.c1x, cp.c1y, cp.c2x, cp.c2y, ex, ey)
+            // micro-jitter and small Gaussian noise
+            const mx = p.x + gauss() * rand(0.2, 2.2)
+            const my = p.y + gauss() * rand(0.2, 2.2)
+
+            const ev = new MouseEvent('mousemove', {
+              bubbles: true,
+              clientX: Math.round(mx),
+              clientY: Math.round(my),
+              screenX: Math.round(mx),
+              screenY: Math.round(my)
+            })
+            document.elementFromPoint(Math.round(mx), Math.round(my))?.dispatchEvent(ev)
+
+            // variable interval: faster in middle, slower at ends
+            const base = duration / steps
+            const speedFactor = 0.6 + 0.8 * Math.abs(0.5 - progress)
+            const wait = Math.max(8, Math.round(base * (rand(0.6, 1.4)) * speedFactor))
+            await new Promise(r => setTimeout(r, wait))
+          }
+
+          // small settling moves (tiny shakes)
+          for (let k = 0; k < 3; k++) {
+            const sxn = ex + gauss() * rand(0.2, 1.2)
+            const syn = ey + gauss() * rand(0.2, 1.2)
+            const ev2 = new MouseEvent('mousemove', { bubbles: true, clientX: Math.round(sxn), clientY: Math.round(syn) })
+            document.elementFromPoint(Math.round(sxn), Math.round(syn))?.dispatchEvent(ev2)
+            await new Promise(r => setTimeout(r, Math.round(rand(25, 120))))
+          }
         }
-        
+
+        // Human-like random delay generator: mixture distribution for variability
+        const randomDelay = (min, max) => {
+          const r = Math.random()
+          if (r < 0.55) return Math.round(min + Math.pow(Math.random(), 2) * (max - min))
+          if (r < 0.9) return Math.round(min + Math.random() * (max - min))
+          return Math.round(min + Math.pow(Math.random(), 0.5) * (max - min))
+        }
+
+        // Wait for page load a bit (human slower)
+        await new Promise(r => setTimeout(r, randomDelay(1200, 2600)))
+
+        // Find subscribe button
+        let subBtn = document.querySelector('[aria-label*="Subscribe"], [aria-label*="subscribe"]')
+        if (!subBtn) {
+          subBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.toLowerCase().includes('subscribe'))
+        }
         if (!subBtn) {
           return { success: false, message: 'Subscribe button not found' }
         }
-        
+
         // Check if already subscribed
         const alreadySubscribed = subBtn.textContent.toLowerCase().includes('unsubscribe')
         if (alreadySubscribed) {
           return { success: false, message: 'Already subscribed' }
         }
-        
-        // Get button position
+
+        // Compute button center with small jitter
         const rect = subBtn.getBoundingClientRect()
-        const btnX = rect.left + rect.width / 2 + (Math.random() - 0.5) * 20
-        const btnY = rect.top + rect.height / 2 + (Math.random() - 0.5) * 10
-        
-        // Random starting position (far away)
-        const startX = Math.random() * window.innerWidth
-        const startY = Math.random() * window.innerHeight
-        
-        // Humanoid mouse movement to button
-        await moveMouse(startX, startY, btnX, btnY, 800 + Math.random() * 400)
-        
-        // Pause before hover (humans usually hover first)
-        await new Promise(r => setTimeout(r, randomDelay(200, 800)))
-        
-        // Hover event
-        const hoverEvent = new MouseEvent('mouseover', {
-          bubbles: true,
-          clientX: btnX,
-          clientY: btnY
-        })
-        subBtn.dispatchEvent(hoverEvent)
-        
-        await new Promise(r => setTimeout(r, randomDelay(300, 700)))
-        
-        // Random pause to "read" or "consider"
-        if (Math.random() < 0.5) {
-          await new Promise(r => setTimeout(r, randomDelay(500, 1500)))
-        }
-        
-        // Click with natural timing
+        const btnX = rect.left + rect.width / 2 + rand(-10, 10)
+        const btnY = rect.top + rect.height / 2 + rand(-6, 6)
+
+        // Randomized start (some distance away)
+        const startX = rand(0, window.innerWidth)
+        const startY = rand(0, window.innerHeight)
+
+        // Move mouse in human-like path
+        await moveMouse(startX, startY, btnX, btnY, 600 + rand(-250, 900))
+
+        // Pause before hover
+        await new Promise(r => setTimeout(r, randomDelay(180, 900)))
+
+        // Dispatch hover
+        subBtn.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, clientX: Math.round(btnX), clientY: Math.round(btnY) }))
+        await new Promise(r => setTimeout(r, randomDelay(150, 900)))
+
+        // Occasional hesitation
+        if (Math.random() < 0.6) await new Promise(r => setTimeout(r, randomDelay(350, 1600)))
+
+        // Press with realistic press duration
+        const pressDuration = Math.round(rand(30, 260))
+        subBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: Math.round(btnX), clientY: Math.round(btnY) }))
+        await new Promise(r => setTimeout(r, pressDuration))
+        subBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: Math.round(btnX), clientY: Math.round(btnY) }))
         subBtn.click()
-        
-        // Dispatch click event too
-        const clickEvent = new MouseEvent('click', {
-          bubbles: true,
-          cancelable: true,
-          clientX: btnX,
-          clientY: btnY
-        })
-        subBtn.dispatchEvent(clickEvent)
-        
-        // Wait to see response
-        await new Promise(r => setTimeout(r, 2000))
-        
-        // Verify if successful
+
+        // Wait to observe result
+        await new Promise(r => setTimeout(r, randomDelay(900, 2800)))
+
         const isNowSubscribed = subBtn.textContent.toLowerCase().includes('unsubscribe')
-        
-        return {
-          success: isNowSubscribed,
-          message: isNowSubscribed ? 'Successfully subscribed! ✓' : 'Subscription may have failed'
-        }
+        return { success: isNowSubscribed, message: isNowSubscribed ? 'Successfully subscribed! ✓' : 'Subscription may have failed' }
       })()
     `)
-    
+
     return result
   } catch (err) {
     return { success: false, message: 'Error: ' + err.message }
